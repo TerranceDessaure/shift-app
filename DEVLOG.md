@@ -42,3 +42,21 @@ as a folder, not a file. `ls` shows `d` in the Mode column for folders
 `git add .` → `git commit -m "message"` → `git push`
 
 **Next:** Day 4 – set up Supabase and design the database.
+
+## Day 4 October 7, 2026
+
+Notes for SQL Editor:
+
+`create table name(...)` makes the able. Each line inside is a column: its name, hten its type
+
+Types: `uuid` is a long random ID, `text is a string`, `date` is a calendar date,   `time` is a time of day, and `timestamptz` is an exact moment (date + time + timezone)
+
+`primary key` marks the unique ID. `default gen_random_uuid()` creates one automatically, and `default now()` fill in th eusrrent time.
+
+`not null` means the column is required. `unique` means no two rows can match, so no duplicate usernames.
+
+` reference restaurant(id)` is a foriegn key. `on delete cascade` mean if an employee us deleted, their shifts are deleted too.
+
+`check (...)` is a rule the database enforces. Here, a role must be one of your three, and a shift can't end before it starts. Even if the app has a bug. bad data can't get in.
+
+The last four lines turn on Row Level Security. Right now no one can read or cahnge anything through the app; the doors are locked. Later  we'll add rules like "employees can only see thier onw shifts and that day's coworkers," which is how we enforce the privacy you asked for. (The SQL Editor has damin access, so it still works for the dev.)
