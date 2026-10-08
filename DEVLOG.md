@@ -60,3 +60,59 @@ Types: `uuid` is a long random ID, `text is a string`, `date` is a calendar date
 `check (...)` is a rule the database enforces. Here, a role must be one of your three, and a shift can't end before it starts. Even if the app has a bug. bad data can't get in.
 
 The last four lines turn on Row Level Security. Right now no one can read or cahnge anything through the app; the doors are locked. Later  we'll add rules like "employees can only see thier onw shifts and that day's coworkers," which is how we enforce the privacy you asked for. (The SQL Editor has damin access, so it still works for the dev.)
+
+## Day 5 – Oct 8, 2026
+
+**Goal:** Connect the React app to Supabase and check a manager's invite code from the app.
+
+**What I did:**
+- Installed Supabase's library: `npm install @supabase/supabase-js`
+- Saved my Project URL and publishable key in `.env.local` (never pushed to GitHub)
+- Created `src/supabaseClient.js`, the one place the app connects to the database
+- Wrote a database function, `check_invite`, that returns a code's role if it
+  exists, is unused, and hasn't expired
+- Added my restaurant and test invite codes (`TEST-1234` valid, `OLD-1234` expired)
+- Built `src/InviteCheck.jsx`: type a code, the app asks the database, and it shows the result
+- Challenges: friendly role names with a lookup object, and codes now work in any capitals
+
+**How it works (the big picture):**
+- The database is a filing cabinet, and every drawer (table) is locked with Row Level Security
+- A new hire isn't signed up yet, so they can't open the invite codes drawer
+- `check_invite` is like a receptionist: it has the key, looks up the one code,
+  and only returns the answer, so visitors never see the table itself
+- `security definer` gives the function the owner's permissions
+- `grant execute ... to anon, authenticated` lets the app call it, even before login
+
+**New React concepts:**
+- `useState` lets a component remember values that change, like typed text;
+  the screen redraws automatically when they change
+- `async` / `await` waits for the database to answer (same idea as Python)
+- `supabase.rpc("function_name", {...})` calls a database function
+- Supabase always returns `{ data, error }`, so check for the error first
+- `event.preventDefault()` stops a form from reloading the page
+
+**My workflow:**
+- Supabase runs the SQL; `supabase/schema.sql` is the written record,
+  backed up through VS Code and GitHub
+- If SQL changes the database, it goes in schema.sql. If it only reads data, it doesn't.
+- Clear the SQL Editor box (Ctrl + A, Delete) before pasting new code
+
+**Problems & fixes:**
+- "Failed to resolve import @supabase/supabase-js" → the library wasn't installed.
+  Run `npm install` from the project folder and check package.json.
+- Blank page, "supabaseUrl is required" (found with F12 → Console) → the variable
+  names in `.env.local` didn't match the code. Found it by adding
+  `console.log(import.meta.env)` to see what the app was actually receiving.
+- `.env.local` changes only load after restarting the server (Ctrl + C, then `npm run dev`)
+- "null value in column restaurant_id violates not-null constraint" → the restaurants
+  table was empty. The "Failing row" detail showed which column was empty.
+- Valid code showed as invalid → old and new SQL were pasted together; the old
+  code errored first, so the new code never ran.
+- Codes were case-sensitive → fixed with `.trim().toUpperCase()`
+
+**What I learned:**
+- Read error messages carefully; they usually name the exact problem
+- Print what the code sees (`console.log`) instead of guessing
+- Never put the secret/service_role key in the app
+
+**Next:** Day 6 – build the sign-up form and create real user accounts.
