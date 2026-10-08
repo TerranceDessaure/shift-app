@@ -1,3 +1,5 @@
+import InviteCheck from "./InviteCheck";
+
 function shiftHours(start, end) {
   return end - start;
 }
@@ -28,6 +30,7 @@ function App() {
   return (
     <div>
       <h1>My Shifts</h1>
+      <InviteCheck />
       <ul>
         {myWeek.map((shift) => (
           <li key={shift.day}>

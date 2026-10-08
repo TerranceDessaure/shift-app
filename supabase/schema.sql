@@ -87,7 +87,7 @@ insert into invite_codes (code, restaurant_id, role, expires_at)
 values (
   'TEST-1234',
   (select id from restaurants limit 1),
-  'front_of_house',
+  'front_of_house' as [Front of House],
   now() + interval '7 days'
 )
 on conflict (code) do nothing;
