@@ -1,4 +1,4 @@
-import InviteCheck from "./InviteCheck";
+import SignUp from "./SignUp";
 
 function shiftHours(start, end) {
   return end - start;
@@ -30,7 +30,7 @@ function App() {
   return (
     <div>
       <h1>My Shifts</h1>
-      <InviteCheck />
+      <SignUp />
       <ul>
         {myWeek.map((shift) => (
           <li key={shift.day}>
