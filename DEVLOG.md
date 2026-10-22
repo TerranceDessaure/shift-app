@@ -116,3 +116,58 @@ The last four lines turn on Row Level Security. Right now no one can read or cah
 - Never put the secret/service_role key in the app
 
 **Next:** Day 6 – build the sign-up form and create real user accounts.
+## Day 6 – Oct 21, 2026
+
+**Goal:** Build the sign-up form and create real user accounts.
+
+**What I did:**
+- First I went into Supabase and changed one setting. Today's goal was to get real
+  user accounts working, and Supabase sends every new user a confirmation email by
+  default. Its free email service only sends a few per hour and rejects fake emails,
+  so I turned **Confirm email** off for testing. (Turn it back on before real users join!)
+- Next I walked through how the database handles sign-up:
+  - The app sends the person's email, password, details (full name, username, phone),
+    and their invite code to Supabase all at once.
+  - Supabase creates their login in its own `auth.users` table.
+  - That fires a **trigger** (an automatic "when X happens, do Y" rule), which runs my
+    `handle_new_user` function. It checks the invite code again, creates their row in
+    `profiles`, and marks the code as used.
+  - If the code is bad, the function raises an error and the whole sign-up is cancelled,
+    so no account gets created.
+- Added my first access rule (policy): logged-in users can read their own profile, and only theirs.
+- Built `src/SignUp.jsx`, which replaced `InviteCheck.jsx`. Step 1 checks the code,
+  then step 2 shows the details form.
+- Tested it: created a test user, confirmed their profile has the right role, and
+  confirmed the used code gets rejected the second time.
+
+**Why the role comes from the code:**
+The role is set by the invite code the manager made, never by what the person types.
+That way nobody can make themselves a manager.
+
+**New SQL concepts:**
+- `language plpgsql`: a function with steps and logic (variables, `if`), not just one query
+- `new`: inside a trigger, the row that was just created
+- `raw_user_meta_data ->> 'username'`: pulls one value out of the extra details,
+  like `data["username"]` in Python
+- `raise exception`: stops everything and undoes the sign-up
+- `auth.uid()`: the ID of whoever is logged in
+
+**New React concepts:**
+- One component can show two screens: `if (!role)` returns the code form; once the
+  code is valid, `setRole` fills it in and React redraws with the details form
+- `supabase.auth.signUp()` creates the login, and `options.data` holds the extra details
+- `type="email"`, `type="password"`, `type="tel"` and `required` get the browser
+  to check and format inputs for me
+- Always re-check on the server. The screen alone can be tampered with.
+
+**Problems & fixes:**
+- My Supabase project may get paused after about a week of no activity.
+  Fix: click **Restore project** on the dashboard; the data is kept.
+- White screen, error on `import SignUp from "./SignUp"` → I created `SignUp.jsx`
+  as a folder again. Fix: right-click `src` → **New File** (the menu says it in words).
+- "Email address is invalid" and then a rate-limit error → Supabase was still trying to
+  send confirmation emails because I never clicked **Save** after turning it off.
+- Testing tip: Gmail `+` addresses (`myname+test1@gmail.com`) give me unlimited
+  real test emails that all land in my inbox.
+
+**Next:** Day 7 – login screen, staying logged in, and logging out. 
