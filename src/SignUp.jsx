@@ -1,11 +1,6 @@
 import { useState } from "react";
 import { supabase } from "./supabaseClient";
-
-const roleNames = {
-  front_of_house: "Front of House",
-  back_of_house: "Back of House",
-  manager: "Manager",
-};
+import {roleNames}  from "./roles";
 
 function SignUp() {
   const [code, setCode] = useState("");

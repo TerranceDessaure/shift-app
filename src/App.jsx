@@ -1,45 +1,47 @@
+import { useEffect, useState } from "react";
+import { supabase } from "./supabaseClient";
+import Login from "./Login";
 import SignUp from "./SignUp";
-
-function shiftHours(start, end) {
-  return end - start;
-}
-
-
-function shiftHoursWithBreak(start, end) {
-  const hours = shiftHours(start, end);
-  if (hours > 6) {
-    return hours - 0.5; // subtract 30 mins for break
-  }
-  return hours;
-}
-
-const myWeek = [
-  { day: "Monday", start: 9, end: 17 },
-  { day: "Tuesday", start: 12, end: 21 },
-  { day: "Thursday", start: 9, end: 21 },
-  { day: "Friday", start: 9, end: 17 },
-  { day: "Saturday", start: 10, end: 17 },
-];
+import Home from "./Home";
 
 function App() {
-  let totalHours = 0;
-  for (const shift of myWeek) {
-    totalHours += shiftHours(shift.start, shift.end);
+  const [session, setSession] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [showSignUp, setShowSignUp] = useState(false);
+
+  useEffect(() => {
+    // 1. When the app opens, check whether someone is already logged in
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session);
+      setLoading(false);
+    });
+
+    // 2. Listen for log ins and log outs from now on
+    const { data } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      setSession(newSession);
+    });
+
+    // 3. Stop listening if App ever goes away
+    return () => data.subscription.unsubscribe();
+  }, []);
+
+  if (loading) {
+    return <p>Loading...</p>;
+  }
+
+  if (session) {
+    return <Home session={session} />;
   }
 
   return (
     <div>
-      <h1>My Shifts</h1>
-      <SignUp />
-      <ul>
-        {myWeek.map((shift) => (
-          <li key={shift.day}>
-            {shift.day}: {shiftHours(shift.start, shift.end)} hours (
-              {shiftHoursWithBreak(shift.start, shift.end)} with break)
-          </li>
-        ))}
-      </ul> <p> Total hours this week: {totalHours}</p>
-      {totalHours > 40 && <p>Overtime warning!</p>}
+      <h1>Shift App</h1>
+      {showSignUp ? <SignUp /> : <Login />}
+      <button onClick={() => setShowSignUp(!showSignUp)}>
+        {showSignUp
+          ? "Already have an account? Log in"
+          : "New here? Sign up with an invite code"}
+      </button>
     </div>
   );
 }
