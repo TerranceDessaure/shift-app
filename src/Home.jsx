@@ -44,10 +44,10 @@ function Home({ session }) {
             @{profile.username} · {roleNames[profile.role]}
           </p>
           {profile.role === "manager" ? (
-  <ManagerSchedule profile={profile} />
-) : (
-  <p>Your schedule will appear here.</p>
-)}
+            <ManagerSchedule profile={profile} />
+          ) : (
+            <p>Your schedule will appear here.</p>
+          )}
         </>
       )}
     </div>
