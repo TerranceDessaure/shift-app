@@ -221,3 +221,61 @@ This only works because of the Day 6 policy: logged-in users can read their own 
 **Week 1 complete:** sign-up with invite codes, login, logout, and staying logged in.
 
 **Next:** Week 2 – the manager's scheduling screen: creating and editing shifts.
+
+## Day 8 – Oct 25, 2026
+
+**Goal:** Start Week 2 by building the manager's scheduling screen, so a manager can
+add shifts for employees and see the next two weeks.
+
+**What I did:**
+- Created a manager invite code (`MGR-2026`) and signed up as a manager
+- Wrote access rules (policies) so that:
+  - Managers can see everyone in their restaurant
+  - Managers can create, read, change, and delete their restaurant's shifts
+  - Employees can read their own shifts (the screen for this comes in Week 3)
+- Added `timeToHours` to `src/hours.js` to turn "09:30" into 9.5
+- Built `src/ManagerSchedule.jsx`:
+  - A form to add a shift: employee dropdown, date, start time, end time
+  - Checks store hours before saving (9–9 weekdays, 10–5 Saturday, closed Sunday)
+  - A list of shifts for the next two weeks with each shift's hours
+- Updated `Home.jsx` to show the schedule only to managers
+
+**Why the policies needed helper functions:**
+The rule "managers can read profiles" has to check the profiles table to find out
+if you're a manager, which is a rule checking itself (infinite recursion).
+The fix was two helpers, `my_restaurant_id()` and `is_manager()`, which use
+`security definer` to look up my info, the same receptionist trick as `check_invite`.
+
+**New SQL concepts:**
+- `stable` – the function gives the same answer during one query, so Postgres runs it once
+- `exists (select 1 ...)` – true if at least one row matches
+- `for all` – a policy covering select, insert, update, and delete
+- `using` decides which existing rows I can see or touch;
+  `with check` decides which new or changed rows are allowed
+- Multiple policies combine with OR, so each person gets exactly what they need
+
+**New JavaScript / React concepts:**
+- Joins in Supabase: `employee:profiles(full_name, role)` pulls the employee's
+  name along with each shift, like a SQL join
+- `.gte()` / `.lte()` = greater/less than or equal, my `BETWEEN` for two weeks
+- `<select>` and `<option>` make a dropdown; the name shows, the ID gets saved
+- `type="date"` and `type="time"` give built-in pickers, even on phones
+- Destructuring: `const [hours, minutes] = ...` unpacks an array, like Python
+- `getDay()` returns 0 (Sunday) to 6 (Saturday)
+- Times like "09:00" can be compared as text because they're always two digits
+- JavaScript's built-in date conversion uses UTC, which can turn late-night
+  dates into tomorrow, so I format dates with my own `toDateString` helper
+
+**Good to know:**
+- Emails are stored in Supabase's built-in `auth.users` table, not in `profiles`.
+  Passwords are stored scrambled (hashed), and the app can't read other people's emails.
+
+**Problems & fixes:**
+- `npm error Missing script: "dev"` → the terminal was in VS Code's program folder,
+  not my project. Fix: `cd "$HOME\Desktop\shift-app"`, or open the folder first.
+- Manager dropdown only showed the manager → I wrote the new SQL in `schema.sql`
+  but never ran it in Supabase. Lesson: write it in the file, THEN run it in the
+  SQL Editor. Nothing changes in the database until it's run there.
+
+**Next:** Editing and deleting shifts, then the two-week view and the hours
+summary with the overtime flag.
