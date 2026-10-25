@@ -22,6 +22,24 @@ const storeHours = {
   // Sunday (0) is missing on purpose: closed
 };
 
+// NEW: one place to check a shift's date and times.
+// Returns a problem message, or null if the shift is fine.
+function validateShift(shiftDate, startTime, endTime) {
+  const dayOfWeek = new Date(`${shiftDate}T00:00`).getDay();
+  const hours = storeHours[dayOfWeek];
+
+  if (!hours) {
+    return "The store is closed on Sundays.";
+  }
+  if (startTime < hours.open || endTime > hours.close) {
+    return `Shifts that day must be between ${hours.open} and ${hours.close}.`;
+  }
+  if (endTime <= startTime) {
+    return "The shift must end after it starts.";
+  }
+  return null;
+}
+
 function ManagerSchedule({ profile }) {
   const [employees, setEmployees] = useState([]);
   const [shifts, setShifts] = useState([]);
@@ -30,6 +48,7 @@ function ManagerSchedule({ profile }) {
   const [startTime, setStartTime] = useState("09:00");
   const [endTime, setEndTime] = useState("17:00");
   const [message, setMessage] = useState("");
+  const [editingId, setEditingId] = useState(null); // NEW: which shift is being edited
 
   // The next two weeks
   const today = new Date();
@@ -54,7 +73,8 @@ function ManagerSchedule({ profile }) {
   async function loadShifts() {
     const { data, error } = await supabase
       .from("shifts")
-      .select("id, shift_date, start_time, end_time, employee:profiles(full_name, role)")
+      // NEW: employee_id added, so Edit can fill in the dropdown
+      .select("id, employee_id, shift_date, start_time, end_time, employee:profiles(full_name, role)")
       .gte("shift_date", startDate)
       .lte("shift_date", endDate)
       .order("shift_date")
@@ -72,41 +92,79 @@ function ManagerSchedule({ profile }) {
     loadShifts();
   }, []);
 
-  async function handleAddShift(event) {
+  // NEW: clear the form and go back to "add" mode
+  function resetForm() {
+    setEditingId(null);
+    setEmployeeId("");
+    setShiftDate("");
+    setStartTime("09:00");
+    setEndTime("17:00");
+  }
+
+  // NEW: fill the form with a shift's details to edit it
+  function startEdit(shift) {
+    setEditingId(shift.id);
+    setEmployeeId(shift.employee_id);
+    setShiftDate(shift.shift_date);
+    setStartTime(shift.start_time.slice(0, 5));
+    setEndTime(shift.end_time.slice(0, 5));
+    setMessage("");
+  }
+
+  // CHANGED: handles both adding and editing
+  async function handleSubmit(event) {
     event.preventDefault();
     setMessage("");
 
-    // Check the shift fits within store hours
-    const dayOfWeek = new Date(`${shiftDate}T00:00`).getDay();
-    const hours = storeHours[dayOfWeek];
-
-    if (!hours) {
-      setMessage("The store is closed on Sundays.");
-      return;
-    }
-    if (startTime < hours.open || endTime > hours.close) {
-      setMessage(`Shifts that day must be between ${hours.open} and ${hours.close}.`);
-      return;
-    }
-    if (endTime <= startTime) {
-      setMessage("The shift must end after it starts.");
+    const problem = validateShift(shiftDate, startTime, endTime);
+    if (problem) {
+      setMessage(problem);
       return;
     }
 
-    const { error } = await supabase.from("shifts").insert({
-      restaurant_id: profile.restaurant_id,
+    const shiftData = {
       employee_id: employeeId,
       shift_date: shiftDate,
       start_time: startTime,
       end_time: endTime,
-    });
+    };
+
+    const request = editingId
+      ? supabase.from("shifts").update(shiftData).eq("id", editingId)
+      : supabase.from("shifts").insert({ ...shiftData, restaurant_id: profile.restaurant_id });
+
+    const { error } = await request;
 
     if (error) {
-      setMessage(`Couldn't add shift: ${error.message}`);
+      setMessage(`Couldn't save shift: ${error.message}`);
       return;
     }
 
-    setMessage("Shift added!");
+    setMessage(editingId ? "Shift updated!" : "Shift added!");
+    resetForm();
+    loadShifts();
+  }
+
+  // NEW: delete a shift after confirming
+  async function handleDelete(shift) {
+    const confirmed = window.confirm(
+      `Delete ${shift.employee.full_name}'s shift on ${shift.shift_date}?`
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    const { error } = await supabase.from("shifts").delete().eq("id", shift.id);
+
+    if (error) {
+      setMessage(`Couldn't delete shift: ${error.message}`);
+      return;
+    }
+
+    if (shift.id === editingId) {
+      resetForm();
+    }
+    setMessage("Shift deleted.");
     loadShifts();
   }
 
@@ -114,8 +172,8 @@ function ManagerSchedule({ profile }) {
     <div>
       <h2>Schedule: {startDate} to {endDate}</h2>
 
-      <form onSubmit={handleAddShift}>
-        <h3>Add a shift</h3>
+      <form onSubmit={handleSubmit}>
+        <h3>{editingId ? "Edit shift" : "Add a shift"}</h3>
         <select
           value={employeeId}
           onChange={(event) => setEmployeeId(event.target.value)}
@@ -146,7 +204,12 @@ function ManagerSchedule({ profile }) {
           onChange={(event) => setEndTime(event.target.value)}
           required
         />
-        <button type="submit">Add shift</button>
+        <button type="submit">{editingId ? "Save changes" : "Add shift"}</button>
+        {editingId && (
+          <button type="button" onClick={resetForm}>
+            Cancel
+          </button>
+        )}
       </form>
 
       {message && <p>{message}</p>}
@@ -155,11 +218,20 @@ function ManagerSchedule({ profile }) {
       {shifts.length === 0 && <p>No shifts scheduled yet.</p>}
       <ul>
         {shifts.map((shift) => (
-          <li key={shift.id}>
+          <li
+            key={shift.id}
+            style={{ fontWeight: shift.id === editingId ? "bold" : "normal" }}
+          >
             {shift.shift_date}: {shift.employee.full_name} (
             {roleNames[shift.employee.role]}), {shift.start_time.slice(0, 5)}–
-            {shift.end_time.slice(0, 5)}, {" "}
-            {shiftHours(timeToHours(shift.start_time), timeToHours(shift.end_time))} hours
+            {shift.end_time.slice(0, 5)},{" "}
+            {shiftHours(timeToHours(shift.start_time), timeToHours(shift.end_time))} hours{" "}
+            <button type="button" onClick={() => startEdit(shift)}>
+              Edit
+            </button>
+            <button type="button" onClick={() => handleDelete(shift)}>
+              Delete
+            </button>
           </li>
         ))}
       </ul>
