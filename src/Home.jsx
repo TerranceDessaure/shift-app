@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "./supabaseClient";
 import { roleNames } from "./roles";
+import ManagerSchedule from "./ManagerSchedule";
 
 function Home({ session }) {
   const [profile, setProfile] = useState(null);
@@ -11,7 +12,7 @@ function Home({ session }) {
     async function loadProfile() {
       const { data, error } = await supabase
         .from("profiles")
-        .select("full_name, username, role")
+        .select("full_name, username, role, restaurant_id")
         .eq("id", session.user.id)
         .single();
 
@@ -42,7 +43,11 @@ function Home({ session }) {
           <p>
             @{profile.username} · {roleNames[profile.role]}
           </p>
-          <p>Your schedule will appear here.</p>
+          {profile.role === "manager" ? (
+  <ManagerSchedule profile={profile} />
+) : (
+  <p>Your schedule will appear here.</p>
+)}
         </>
       )}
     </div>

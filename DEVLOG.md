@@ -171,3 +171,53 @@ That way nobody can make themselves a manager.
   real test emails that all land in my inbox.
 
 **Next:** Day 7 – login screen, staying logged in, and logging out. 
+
+## Day 7 – Oct 22, 2026
+
+**Goal:** Let people log in, stay logged in, and log out, so the app knows who is using it.
+
+**What I did:**
+- Moved shared code into its own files:
+  - `src/roles.js` – the role display names (used by more than one screen now)
+  - `src/hours.js` – my shift hour calculations, saved for Week 2
+- Built `src/Login.jsx` – email and password login with an error message on failure
+- Built `src/Home.jsx` – loads the logged-in person's profile and shows
+  "Welcome, [name]!" with their username, role, and a Log out button
+- Rewrote `src/App.jsx` – it checks whether someone is logged in and shows
+  either the Home screen or the Login/Sign up screens
+- Tested: log in, refresh, close and reopen the tab, log out, wrong password,
+  and signing up a new user (which logs them in automatically)
+
+**How login works (the big picture):**
+- A **session** is Supabase's proof that someone is logged in. Supabase saves it
+  in the browser, which is how people stay logged in after refreshing.
+- When the app opens, it checks for a saved session (`getSession`), showing
+  "Loading..." until it knows, so the login screen doesn't flash.
+- A **listener** (`onAuthStateChange`) tells the app every time someone logs in
+  or out, and the app switches screens automatically. That's why the login
+  form doesn't need a success message.
+
+**New React concepts:**
+- **`useEffect`** – runs code after the screen appears. Loading data goes here.
+  - `[]` at the end = run once when it first appears
+  - `[session]` = run again only when `session` changes
+  - returning a function = cleanup when the component goes away
+- **Props** – passing information into a component, like function arguments:
+  `<Home session={session} />` → `function Home({ session })`
+- **Ternary** – a one-line if/else: `condition ? a : b`
+  (Python: `a if condition else b`)
+- **`!`** flips true/false, so `setShowSignUp(!showSignUp)` toggles screens
+- **Fragments** `<>...</>` – an invisible wrapper to group elements
+- **Imports:** `export default` → `import Login from "./Login"` (no braces).
+  A plain `export` → `import { roleNames } from "./roles"` (braces, exact name).
+
+**Reading from the database in the app:**
+`supabase.from("profiles").select("full_name, username, role").eq("id", ...).single()`
+is the same as:
+`select full_name, username, role from profiles where id = '...';`
+`.single()` returns one object instead of an array.
+This only works because of the Day 6 policy: logged-in users can read their own profile.
+
+**Week 1 complete:** sign-up with invite codes, login, logout, and staying logged in.
+
+**Next:** Week 2 – the manager's scheduling screen: creating and editing shifts.

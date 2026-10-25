@@ -9,3 +9,9 @@ export function shiftHoursWithBreak(start, end) {
   }
   return hours;
 }
+
+// Convert "09:30" or "09:30:00" into 9.5
+export function timeToHours(time){
+  const [hours, minutes] = time.split(":").map(Number);
+  return hours + minutes / 60;
+}

@@ -91,3 +91,136 @@ values (
   now() + interval '7 days'
 )
 on conflict (code) do nothing;
+
+-- ---------- SIGN-UP ----------
+
+-- When a new login is created, validate the invite code and create their profile
+create or replace function handle_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_code text := upper(trim(new.raw_user_meta_data ->> 'invite_code'));
+  v_invite invite_codes%rowtype;
+begin
+  -- Find a valid, unused, unexpired code
+  select * into v_invite
+  from invite_codes
+  where code = v_code
+    and used_by is null
+    and expires_at > now()
+  for update;
+
+  -- No valid code: cancel the whole sign-up
+  if not found then
+    raise exception 'Invalid or expired invite code';
+  end if;
+
+  -- Create their profile; the role comes from the code
+  insert into profiles (id, restaurant_id, username, full_name, phone, role)
+  values (
+    new.id,
+    v_invite.restaurant_id,
+    new.raw_user_meta_data ->> 'username',
+    new.raw_user_meta_data ->> 'full_name',
+    nullif(new.raw_user_meta_data ->> 'phone', ''),
+    v_invite.role
+  );
+
+  -- Mark the code as used
+  update invite_codes set used_by = new.id where code = v_code;
+
+  return new;
+end;
+$$;
+
+-- Run the function every time a new login is created
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute function handle_new_user();
+
+-- Logged-in users can read their own profile (and only their own)
+drop policy if exists "Users can read their own profile" on profiles;
+create policy "Users can read their own profile"
+  on profiles for select
+  to authenticated
+  using (id = auth.uid());
+
+
+----------- Week 2 ----------------
+
+----------- Day 8 -------------------
+
+-- Creating a manage account
+
+insert into invite_codes (code, restaurant_id, role, expires_at)
+value (
+  'MGR-2026',
+  (
+   select id 
+   from restaurants limit 1
+   ),
+  'manager',
+  now() + interval '30 days'
+);
+
+
+-- ------------- Helpers ---------------
+
+-- The restaurnt of whoever is logged in
+create or replace function my_restaurant_id()
+return uuid
+language sql
+stable
+security definer
+ser search_path = public
+as $$
+  select restaurant_id 
+  from profiles
+  where id = auth.uid();
+$$;
+
+-- Is whoever is logged in a mananger?
+create or replace function is_manager()
+return boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from profiles
+    where id = auth.uid() and role = 'manager'
+  );
+$$;
+
+-- --------- Manager & Shift Policies -------------
+
+-- Managers can see everyone in their restaurant
+drop policy if exists "Managers can read their team" on profiles;
+create policy "Managers can read their team"
+  on profiles for select
+  to authenticated
+  using (is_manager() and restaurant_id = my_restaurant_id());
+
+-- Manager can create, read, change, and delete their restaurant's shifts
+drop policy if exists "Managers can manage shifts" on shifts;
+create policy "Managers can manage shifts"
+  on shifts for all
+  to authenticated
+  using (is_manager() and restaurant_id = my_restaurt_id())
+  with check (is_manager() and restaurant_id = my_restauran_id());
+
+-- Employees can read their own shifts
+drop policy if exists "Employees can read their own shifts" on shifts;
+create policy "Employees can read their own shifts"
+  on shift for select
+  to authenticated
+  using (employee_id = auth.uid());
+
+
+
