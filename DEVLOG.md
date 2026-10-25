@@ -279,3 +279,49 @@ The fix was two helpers, `my_restaurant_id()` and `is_manager()`, which use
 
 **Next:** Editing and deleting shifts, then the two-week view and the hours
 summary with the overtime flag.
+
+## Day 9 – Oct 25, 2026
+
+**Goal:** Let the manager edit and delete shifts.
+
+**What I did:**
+- Rewrote `src/ManagerSchedule.jsx` so the same form handles adding AND editing
+- Each shift in the list now has **Edit** and **Delete** buttons
+- **Edit** fills the form with that shift's details, bolds it in the list, and
+  switches the form to "Edit shift" with **Save changes** and **Cancel** buttons
+- **Delete** asks "Are you sure?" before removing the shift
+- Moved the store hours check into its own function, `validateShift`, so adding
+  and editing both use it
+- No database changes needed: the Day 8 "Managers can manage shifts" policy
+  used `for all`, which already covers update and delete
+- Tested: editing times, changing the employee, canceling an edit, moving a shift
+  to Sunday (rejected), and deleting with both Cancel and OK
+
+**Key ideas:**
+- **DRY (Don't Repeat Yourself):** when the same logic is needed in two places,
+  put it in one function. If store hours change, there's one place to update.
+- **One state value can control a whole screen:** `editingId` is `null` in
+  "add" mode or a shift's ID in "edit" mode. The heading, button text, and
+  Cancel button all check it.
+- **Update vs. insert:** a ternary picks which request to send:
+  `editingId ? update(...) : insert(...)`
+- `.update(shiftData).eq("id", editingId)` is SQL's
+  `update shifts set ... where id = '...'`. The `.eq()` is critical; without it,
+  I'd be asking to change every shift (Supabase blocks that as a safety net).
+- `.delete().eq("id", shift.id)` works the same way.
+
+**New JavaScript / React concepts:**
+- **Spread operator:** `{ ...shiftData, restaurant_id: ... }` copies an object
+  and adds to it (Python: `{**shift_data, "restaurant_id": ...}`)
+- **`onClick={() => startEdit(shift)}`**, NOT `onClick={startEdit(shift)}`.
+  The second one runs the function immediately while the list is drawn.
+  If I need to pass something in, wrap it in `() =>`.
+- **`type="button"`** on non-submit buttons, because buttons inside a form
+  submit it by default (Cancel would have saved instead of canceling)
+- **`window.confirm()`** shows an OK/Cancel popup and returns true or false
+- **Inline styles:** `style={{ fontWeight: "bold" }}`. The outer braces mean
+  "JavaScript here," the inner braces are an object. CSS's `font-weight`
+  becomes `fontWeight`.
+
+**Next:** A two-week view grouped by day, and an hours summary per employee
+with the 40-hour overtime flag.
