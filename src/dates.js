@@ -7,7 +7,7 @@ export function toDateString(date) {
 }
 
 // A new date that's a number of day later (or earlier, if negative)
-export function addDays(day, days){
+export function addDays(date, days){
     const result = new Date(date);
     result.setDate(result.getDate() + days);
     return result;
