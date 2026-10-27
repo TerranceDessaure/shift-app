@@ -19,3 +19,12 @@ export function getMonday(date) {
     const diff = day === 0 ? 1 : 1 - day;
     return addDays(date, diff)
 }
+
+// "2026-10-27" → "Tue, Oct 27"
+export function formatDay(dateString) {
+  return new Date(`${dateString}T00:00`).toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+}
