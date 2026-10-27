@@ -15,7 +15,6 @@ const storeHours = {
   // Sunday (0) is missing on purpose: closed
 };
 
-// NEW: one place to check a shift's date and times.
 // Returns a problem message, or null if the shift is fine.
 function validateShift(shiftDate, startTime, endTime) {
   const dayOfWeek = new Date(`${shiftDate}T00:00`).getDay();
@@ -44,12 +43,11 @@ function ManagerSchedule({ profile }) {
   const [editingId, setEditingId] = useState(null); // NEW: which shift is being edited
 
   // The next two weeks
-  const today = new Date();
-  const twoWeeksOut = new Date();
-  twoWeeksOut.setDate(today.getDate() + 13);
-  const startDate = toDateString(today);
-  const endDate = toDateString(twoWeeksOut);
-
+  const week1Start = getMonday(new Date());
+  const week2Start = addDays(week1Start, 7);
+  const startDate = toDateString(week1Start);
+  const endDate = toDateString(addDays(week1Start, 12)); // Saturday of next week
+  
   async function loadEmployees() {
     const { data, error } = await supabase
       .from("profiles")
