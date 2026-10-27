@@ -47,7 +47,7 @@ function ManagerSchedule({ profile }) {
   const week2Start = addDays(week1Start, 7);
   const startDate = toDateString(week1Start);
   const endDate = toDateString(addDays(week1Start, 12)); // Saturday of next week
-  
+
   async function loadEmployees() {
     const { data, error } = await supabase
       .from("profiles")
@@ -205,27 +205,22 @@ function ManagerSchedule({ profile }) {
 
       {message && <p>{message}</p>}
 
-      <h3>Upcoming shifts</h3>
-      {shifts.length === 0 && <p>No shifts scheduled yet.</p>}
-      <ul>
-        {shifts.map((shift) => (
-          <li
-            key={shift.id}
-            style={{ fontWeight: shift.id === editingId ? "bold" : "normal" }}
-          >
-            {shift.shift_date}: {shift.employee.full_name} (
-            {roleNames[shift.employee.role]}), {shift.start_time.slice(0, 5)}–
-            {shift.end_time.slice(0, 5)},{" "}
-            {shiftHours(timeToHours(shift.start_time), timeToHours(shift.end_time))} hours{" "}
-            <button type="button" onClick={() => startEdit(shift)}>
-              Edit
-            </button>
-            <button type="button" onClick={() => handleDelete(shift)}>
-              Delete
-            </button>
-          </li>
-        ))}
-      </ul>
+        <WeekView
+          title="This week"
+          weekStart={week1Start}
+          shifts={shifts}
+          editingId={editingId}
+          onEdit={startEdit}
+          onDelete={handleDelete}
+       />
+        <WeekView
+          title="Next week"
+          weekStart={week2Start}
+          shifts={shifts}
+          editingId={editingId}
+          onEdit={startEdit}
+          onDelete={handleDelete}
+        />
     </div>
   );
 }
