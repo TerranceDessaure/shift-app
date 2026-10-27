@@ -14,3 +14,8 @@ export function addDays(day, days){
 }
 
 // The Monday of this week. On Sunday (store closed), the upcoming Monday
+export function getMonday(date) {
+    const day = date.getDay(); // 0 = Sunday ... 6 = Saturday
+    const diff = day === 0 ? 1 : 1 - day;
+    return addDays(date, diff)
+}
