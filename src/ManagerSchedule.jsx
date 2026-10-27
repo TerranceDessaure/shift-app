@@ -1,15 +1,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "./supabaseClient";
 import { roleNames } from "./roles";
-import { shiftHours, timeToHours } from "./hours";
-
-// Format a date as "YYYY-MM-DD" using the local time zone
-function toDateString(date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
+import { toDateString, addDays, getMonday } from "./dates";
+import WeekView from "./WeekView";
 
 // Store hours, including the hour before opening and after closing
 const storeHours = {
