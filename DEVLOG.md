@@ -325,3 +325,63 @@ summary with the overtime flag.
 
 **Next:** A two-week view grouped by day, and an hours summary per employee
 with the 40-hour overtime flag.
+
+## Day 10 – Oct 27, 2026
+
+**Goal:** Make the manager's schedule easier to read, with shifts grouped by day
+and an hours summary per employee with a 40-hour overtime flag.
+
+**What I did:**
+- Changed the schedule to start on **Monday of the current week** and cover two
+  full weeks (Monday–Saturday). Overtime is counted per week, and the old
+  "today + 14 days" window could split a week in half. On Sundays, it starts
+  with the upcoming Monday since the store is closed.
+- Created `src/dates.js` for shared date helpers: `toDateString`, `addDays`,
+  `getMonday`, and `formatDay` ("2026-10-27" → "Tue, Oct 27")
+- Added `hoursForShift` to `src/hours.js` so one call replaces
+  `shiftHours(timeToHours(...), timeToHours(...))`
+- Built `src/WeekView.jsx`, used twice ("This week" and "Next week"):
+  - Each day Monday–Saturday with its shifts, or "No shifts"
+  - "Hours this week" for each employee, most hours first
+  - **⚠ Overtime** next to anyone over 40 hours
+- Edit and Delete still work from inside the week view
+
+**Key ideas:**
+- **Functions as props:** `ManagerSchedule` passes `onEdit={startEdit}` and
+  `onDelete={handleDelete}` into `WeekView`. WeekView only displays shifts and
+  calls those functions when a button is clicked, so all the database code
+  stays in one place and WeekView can be reused for both weeks.
+  - Pass the function itself (`onEdit={startEdit}`, no `() =>`); the
+    component that attaches it to a button adds the `() =>`.
+- **Totaling hours is GROUP BY + SUM in JavaScript:** an object keyed by
+  employee ID, adding each shift's hours to that person's running total.
+- `addDays` copies the date first with `new Date(date)`, because `setDate`
+  changes a date in place and would otherwise change the original too.
+
+**New JavaScript concepts:**
+- `.filter()` keeps items that match a condition (Python: `[s for s in shifts if ...]`)
+- `.includes()` checks if an array has a value (Python: `in`)
+- `Object.values(obj)` gives a list of an object's values (Python: `dict.values()`)
+- `.sort((a, b) => b.hours - a.hours)` sorts most hours first
+- `.map((day) => { ... return (...); })` – braces let me calculate something
+  before returning the JSX
+- `Number(x.toFixed(2))` rounds to 2 decimals (7.666666 → 7.67)
+- `toLocaleDateString("en-US", {...})` formats dates in a readable way
+
+**Problems & fixes:**
+- Page wouldn't load after updating `ManagerSchedule.jsx` → part of the old
+  shift list was still there, including a `</ul>` with no opening `<ul>`, plus
+  functions I had removed the import for. Fix: delete everything between the
+  second `<WeekView />` and the closing `</div>`.
+- `ReferenceError: date is not defined` at `dates.js:11` → the name in
+  `addDays(...)`'s parentheses didn't match the name used inside the function.
+- Lesson: "X is not defined" means the code uses a name that was never created
+  there. The first line of the error gives the file and line number, and the
+  lines under it show the chain of calls that led there
+  (ManagerSchedule → getMonday → addDays).
+
+**Challenge:** limit the date picker to the two-week window with `min` and `max`
+- (note whether I tried it and how it went)
+
+**Next:** Copying last week's schedule into the next week, the last big manager
+feature before Week 3's employee screens and chat.
