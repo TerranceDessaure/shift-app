@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "./supabaseClient";
 import { roleNames } from "./roles";
 import ManagerSchedule from "./ManagerSchedule";
+import InviteCodes from "./InviteCodes";
 
 function Home({ session }) {
   const [profile, setProfile] = useState(null);
@@ -44,7 +45,10 @@ function Home({ session }) {
             @{profile.username} · {roleNames[profile.role]}
           </p>
           {profile.role === "manager" ? (
-            <ManagerSchedule profile={profile} />
+            <>
+              <ManagerSchedule profile={profile} />
+              <InviteCodes />
+            </>
           ) : (
             <p>Your schedule will appear here.</p>
           )}

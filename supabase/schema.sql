@@ -258,4 +258,41 @@ $$;
 
 grant execute on function copy_week(date) to authenticated;
 
+-- ---------- INVITE CODES (MANAGER) ----------
+
+-- Managers can see, create, and delete their restaurant's invite codes
+drop policy if exists "Managers can manage invite codes" on invite_codes;
+create policy "Managers can manage invite codes"
+  on invite_codes for all
+  to authenticated
+  using (is_manager() and restaurant_id = my_restaurant_id())
+  with check (is_manager() and restaurant_id = my_restaurant_id());
+
+-- Create a random invite code for a role; returns the new code
+create or replace function create_invite(p_role text)
+returns text
+language plpgsql
+as $$
+declare
+  v_code text;
+begin
+  if not is_manager() then
+    raise exception 'Only managers can create invite codes';
+  end if;
+
+  -- Random code like 7F3A-B21C
+  v_code := upper(
+    substr(md5(gen_random_uuid()::text), 1, 4) || '-' ||
+    substr(md5(gen_random_uuid()::text), 1, 4)
+  );
+
+  insert into invite_codes (code, restaurant_id, role, created_by, expires_at)
+  values (v_code, my_restaurant_id(), p_role, auth.uid(), now() + interval '7 days');
+
+  return v_code;
+end;
+$$;
+
+grant execute on function create_invite(text) to authenticated;
+
 
