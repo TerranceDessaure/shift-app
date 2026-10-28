@@ -429,3 +429,71 @@ couldn't leave the schedule half-deleted."
 
 **Next:** Day 12 – managers create invite codes inside the app, so adding a new
 employee never needs the SQL Editor.
+
+## Day 12 – Oct 28, 2026
+
+**Goal:** Let managers create invite codes inside the app, so adding a new
+employee never needs the SQL Editor.
+
+**What I did:**
+- Added a policy so managers can see, create, and delete their restaurant's
+  invite codes (until now, that table was completely locked)
+- Wrote a database function, `create_invite`, that makes a random code like
+  `7F3A-B21C` and saves it with the role, restaurant, creator, and a 7-day expiration
+- Built `src/InviteCodes.jsx` and added it to the manager's screen in `Home.jsx`:
+  - Pick a role and click **Create code**
+  - **Copy** button to paste the code into a text message
+  - List of the 20 newest codes: **Active** (with expiration date),
+    **Used by [name]**, or **Expired**
+  - **Revoke** button on unused codes
+- Tested the full loop: created a code, signed up a new user with it, and saw
+  "Used by [name]" plus the new person in the schedule dropdown
+
+**Why the database creates the code:**
+The app only sends the role. The database fills in the restaurant
+(`my_restaurant_id()`), the manager who made it (`auth.uid()`), and the
+expiration, so none of it can be tampered with from the browser. A made-up
+role still gets rejected by the table's `check` rule.
+
+**New SQL concepts:**
+- Building a random code, from the inside out:
+  - `gen_random_uuid()` → a long random ID
+  - `::text` → converts it to text (`::` changes a value's type)
+  - `md5(...)` → scrambles it into letters a–f and digits
+  - `substr(..., 1, 4)` → first 4 characters (Python: `text[0:4]`)
+  - `||` → joins text together (Python: `+`)
+  - `upper(...)` → all capitals
+- Foreign keys are named automatically as `table_column_fkey`
+
+**New JavaScript / Supabase concepts:**
+- **Choosing which link to follow:** `invite_codes` points to `profiles` twice
+  (`created_by` and `used_by`), so I name the exact foreign key:
+  `profiles!invite_codes_used_by_fkey(full_name)`. In SQL terms, it's choosing
+  which column to `JOIN ... ON`.
+- **`?.` (optional chaining):** `invite.used_by_profile?.full_name` gets the name
+  if it exists, instead of crashing when it doesn't
+- **`??`:** use the right side if the left is empty
+  (`name ?? "someone"`, similar to Python's `name or "someone"`)
+- `.order("created_at", { ascending: false }).limit(20)` =
+  `ORDER BY created_at DESC LIMIT 20`
+- `navigator.clipboard.writeText(...)` copies text (only works on secure
+  pages: `localhost` or `https`)
+- A ternary side can only be one item, so two components need a fragment:
+  `<><ManagerSchedule /><InviteCodes /></>`
+
+**Good to know:**
+- Emails are in **Authentication → Users** or `select email from auth.users;`
+- Passwords are stored scrambled (hashed), so nobody can read them, not even me.
+- For a forgotten TEST password, I can set a new one in the SQL Editor:
+  `update auth.users set encrypted_password = extensions.crypt('new-password', extensions.gen_salt('bf')) where email = '...';`
+  (Testing only. Real users will get a "Forgot password?" link later.)
+
+**Problems & fixes:**
+- Couldn't find `<ManagerSchedule profile={profile} />` in `ManagerSchedule.jsx`
+  → it's in `Home.jsx`, the file that decides which screen to show.
+  Tip: **Ctrl + Shift + F** searches every file in the project.
+- Forgot a test account's password → passwords can't be looked up; reset it
+  with the SQL above, or make a new test user with a fresh invite code.
+
+**Next:** Day 13 – the employee schedule: my shifts, hours with and without
+the break, and my weekly total.
