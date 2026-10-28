@@ -159,6 +159,41 @@ function ManagerSchedule({ profile }) {
     loadShifts();
   }
 
+  // Copy this week's shifts into next week
+async function handleCopyWeek() {
+  const week2StartDate = toDateString(week2Start);
+  const thisWeekCount = shifts.filter((shift) => shift.shift_date < week2StartDate).length;
+  const nextWeekCount = shifts.length - thisWeekCount;
+
+  if (thisWeekCount === 0) {
+    setMessage("This week has no shifts to copy.");
+    return;
+  }
+
+  const question =
+    nextWeekCount > 0
+      ? `Next week already has ${nextWeekCount} shift(s). Copying will REPLACE them with this week's ${thisWeekCount} shift(s). Continue?`
+      : `Copy this week's ${thisWeekCount} shift(s) to next week?`;
+
+  if (!window.confirm(question)) {
+    return;
+  }
+
+  const { data, error } = await supabase.rpc("copy_week", {
+    p_from_monday: startDate,
+  });
+
+  if (error) {
+    setMessage(`Couldn't copy the week: ${error.message}`);
+    return;
+  }
+
+  resetForm();
+  setMessage(`Copied ${data} shift(s) to next week.`);
+  loadShifts();
+}
+
+
   return (
     <div>
       <h2>Schedule: {startDate} to {endDate}</h2>
@@ -204,6 +239,10 @@ function ManagerSchedule({ profile }) {
       </form>
 
       {message && <p>{message}</p>}
+
+      <button type="button" onClick={handleCopyWeek}>
+         Copy this week to next week
+       </button>
 
         <WeekView
           title="This week"
