@@ -385,3 +385,47 @@ and an hours summary per employee with a 40-hour overtime flag.
 
 **Next:** Copying last week's schedule into the next week, the last big manager
 feature before Week 3's employee screens and chat.
+
+## Day 11 – Oct 28, 2026
+
+**Goal:** Let the manager copy this week's schedule into next week with one click,
+then adjust whatever's different.
+
+**What I did:**
+- Wrote a database function, `copy_week`, that clears next week's shifts and
+  copies this week's shifts forward 7 days, then returns how many it copied
+- Added a **Copy this week to next week** button to `ManagerSchedule.jsx`:
+  - If next week is empty → "Copy this week's N shift(s) to next week?"
+  - If next week has shifts → warns that copying will **replace** them
+  - If this week is empty → refuses, so next week can't get wiped by accident
+- Tested copying into an empty week, replacing a week, and canceling
+
+**Why the copy happens in the database:**
+"Replace next week" is two steps: delete, then insert. If the app sent them
+as two separate requests and the second one failed, next week would be left
+empty. Inside one database function, everything runs as a single
+**transaction**: either every step succeeds, or none of them do.
+
+**New SQL concepts:**
+- **Transaction** – a group of steps that all succeed or all get undone
+- **`insert ... select`** – the rows to insert come from a query instead of `values`
+- **`shift_date + 7`** – adding a number to a date adds that many days
+- **`between ... and ...`** – same as my SQL class
+- **`get diagnostics v_count = row_count`** – how many rows the last statement affected
+- **When to use `security definer`:** only when a function truly needs to get
+  past the locks (like `check_invite` for people who aren't logged in).
+  `copy_week` runs with the caller's permissions, so Row Level Security still
+  applies, plus `is_manager()` gives a clear error. Two locks instead of one.
+
+**New JavaScript concepts:**
+- `.length` counts the items in an array (Python: `len()`)
+- Dates in `YYYY-MM-DD` format can be compared as text, because alphabetical
+  order matches date order (same reason "09:00" < "17:00" works for times)
+- A ternary can pick between two messages: `nextWeekCount > 0 ? "replace..." : "copy..."`
+
+**Interview answer to remember:**
+"I moved the copy into a database function so a failure partway through
+couldn't leave the schedule half-deleted."
+
+**Next:** Day 12 – managers create invite codes inside the app, so adding a new
+employee never needs the SQL Editor.
