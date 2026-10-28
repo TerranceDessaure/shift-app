@@ -222,5 +222,40 @@ create policy "Employees can read their own shifts"
   to authenticated
   using (employee_id = auth.uid());
 
+-- ---------- COPY WEEK ----------
+
+-- Copy one week's shifts (Monday–Saturday) into the following week,
+-- replacing whatever was there. Returns how many shifts were copied.
+create or replace function copy_week(p_from_monday date)
+returns integer
+language plpgsql
+as $$
+declare
+  v_restaurant uuid := my_restaurant_id();
+  v_count integer;
+begin
+  if not is_manager() then
+    raise exception 'Only managers can copy schedules';
+  end if;
+
+  -- Clear next week
+  delete from shifts
+  where restaurant_id = v_restaurant
+    and shift_date between p_from_monday + 7 and p_from_monday + 13;
+
+  -- Copy this week's shifts, moved forward 7 days
+  insert into shifts (restaurant_id, employee_id, shift_date, start_time, end_time)
+  select restaurant_id, employee_id, shift_date + 7, start_time, end_time
+  from shifts
+  where restaurant_id = v_restaurant
+    and shift_date between p_from_monday and p_from_monday + 6;
+
+  -- How many rows the insert just added
+  get diagnostics v_count = row_count;
+  return v_count;
+end;
+$$;
+
+grant execute on function copy_week(date) to authenticated;
 
 
