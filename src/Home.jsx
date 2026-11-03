@@ -3,6 +3,7 @@ import { supabase } from "./supabaseClient";
 import { roleNames } from "./roles";
 import ManagerSchedule from "./ManagerSchedule";
 import InviteCodes from "./InviteCodes";
+import MySchedule from "./MySchedule";
 
 function Home({ session }) {
   const [profile, setProfile] = useState(null);
@@ -13,7 +14,7 @@ function Home({ session }) {
     async function loadProfile() {
       const { data, error } = await supabase
         .from("profiles")
-        .select("full_name, username, role, restaurant_id")
+        .select("id, full_name, username, role, restaurant_id")
         .eq("id", session.user.id)
         .single();
 
@@ -44,13 +45,14 @@ function Home({ session }) {
           <p>
             @{profile.username} · {roleNames[profile.role]}
           </p>
-          {profile.role === "manager" ? (
+          
+         <MySchedule profile={profile} />
+
+          {profile.role === "manager" && (
             <>
               <ManagerSchedule profile={profile} />
               <InviteCodes />
             </>
-          ) : (
-            <p>Your schedule will appear here.</p>
           )}
         </>
       )}
