@@ -4,6 +4,7 @@ import { roleNames } from "./roles";
 import { toDateString, addDays, getMonday } from "./dates";
 import WeekView from "./WeekView";
 
+
 // Store hours, including the hour before opening and after closing
 const storeHours = {
   1: { open: "09:00", close: "21:00" }, // Monday

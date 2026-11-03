@@ -20,3 +20,13 @@ export function timeToHours(time){
 export function hoursForShift(shift) {
   return shiftHours(timeToHours(shift.start_time), timeToHours(shift.end_time));
 }
+
+// Hours for one database shift, minus the break if it's over 6 hours
+export function hoursForShiftWithBreak(shift) {
+  return shiftHoursWithBreak(timeToHours(shift.start_time), timeToHours(shift.end_time));
+}
+
+// Round to 2 decimals: 7.666666 → 7.67
+export function roundHours(hours) {
+  return Number(hours.toFixed(2));
+}

@@ -1,13 +1,11 @@
 import { roleNames } from "./roles";
 import { addDays, toDateString, formatDay } from "./dates";
 import { hoursForShift } from "./hours";
+import { weekDays, formatDay } from "./dates";
 
 function WeekView({ title, weekStart, shifts, editingId, onEdit, onDelete }) {
   // The dates for Monday through Saturday of this week
-  const days = [];
-  for (let i = 0; i < 6; i++) {
-    days.push(toDateString(addDays(weekStart, i)));
-  }
+  const days = weekDays(weekStart);
 
   // Only the shifts that fall in this week
   const weekShifts = shifts.filter((shift) => days.includes(shift.shift_date));

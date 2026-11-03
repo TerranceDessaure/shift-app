@@ -28,3 +28,21 @@ export function formatDay(dateString) {
     day: "numeric",
   });
 }
+
+// The 6 workdays (Monday-Saturday) of a week, asd "YYYY-MM-DD"strings
+export function weekDays(weekStart) {
+  const days = [];
+  for(let i = 0; i < 6; i++){
+    days.push(toDateString(addDays(weekStart, i)));
+  }
+  return days
+}
+
+
+// "17:30:00" → "5:30 PM"
+export function formatTime(time) {
+  const [hours, minutes] = time.split(":").map(Number);
+  const period = hours >= 12 ? "PM" : "AM";
+  const hour12 = hours % 12 === 0 ? 12 : hours % 12;
+  return `${hour12}:${String(minutes).padStart(2, "0")} ${period}`;
+} 
