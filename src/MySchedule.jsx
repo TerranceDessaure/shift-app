@@ -2,11 +2,13 @@ import { useEffect, useState } from "react";
 import { supabase } from "./supabaseClient";
 import { addDays, getMonday, toDateString, weekDays, formatDay, formatTime } from "./dates";
 import { hoursForShift, hoursForShiftWithBreak, roundHours } from "./hours";
+import { roleNames } from "./roles";
 
 function MySchedule({ profile }) {
   const [shifts, setShifts] = useState([]);
   const [showBreaks, setShowBreaks] = useState(false);
   const [message, setMessage] = useState("");
+  const [coworkers, setCoworkers] = useState([]);
 
   const week1Start = getMonday(new Date());
   const weeks = [
@@ -34,9 +36,22 @@ function MySchedule({ profile }) {
       }
       setShifts(data);
     }
+    async function loadCoworkers() {
+      const { data, error } = await supabase.rpc("my_coworkers", {
+        p_start: startDate,
+        p_end: endDate,
+      });
+
+      if (error) {
+        setMessage(`Couldn't load coworkers: ${error.message}`);
+        return;
+      }
+      setCoworkers(data);
+    }
 
     loadShifts();
-  }, [profile.id]);
+    loadCoworkers();
+  }, [profile.id, startDate, endDate]);
 
   return (
     <section>
@@ -70,6 +85,9 @@ function MySchedule({ profile }) {
             <ul>
               {days.map((day) => {
                 const dayShifts = weekShifts.filter((shift) => shift.shift_date === day);
+                const dayCoworkers = coworkers.filter(
+                  (coworker) => coworker.shift_date === day,
+                );
 
                 return (
                   <li key={day}>
@@ -81,13 +99,33 @@ function MySchedule({ profile }) {
                       ? "Off"
                       : dayShifts.map((shift) => (
                           <span key={shift.id}>
-                            {formatTime(shift.start_time)} – {formatTime(shift.end_time)} (
+                            {formatTime(shift.start_time)} –{" "}
+                            {formatTime(shift.end_time)} (
                             {roundHours(hoursForShift(shift))} hrs
                             {showBreaks &&
                               `, ${roundHours(hoursForShiftWithBreak(shift))} with break`}
                             ){" "}
                           </span>
                         ))}
+
+                    {dayShifts.length > 0 && (
+                      <div>
+                        Working with:
+                        {dayCoworkers.length === 0 ? (
+                          " no one else scheduled yet"
+                        ) : (
+                          <ul>
+                            {dayCoworkers.map((coworker) => (
+                              <li key={coworker.shift_id}>
+                                {coworker.full_name} ({roleNames[coworker.role]}){" "}
+                                {formatTime(coworker.start_time)} –{" "}
+                                {formatTime(coworker.end_time)}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    )}
                   </li>
                 );
               })}
