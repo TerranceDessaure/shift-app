@@ -1,12 +1,9 @@
 import { roleNames } from "./roles";
-import { hoursForShift } from "./hours";
-import { weekDays, formatDay } from "./dates";
+import { weekDays, formatDay, formatTime } from "./dates";
+import { hoursForShift, roundHours } from "./hours";
 
 function WeekView({ title, weekStart, shifts, editingId, onEdit, onDelete }) {
-  // The dates for Monday through Saturday of this week
   const days = weekDays(weekStart);
-
-  // Only the shifts that fall in this week
   const weekShifts = shifts.filter((shift) => days.includes(shift.shift_date));
 
   // Add up hours per employee
@@ -21,8 +18,6 @@ function WeekView({ title, weekStart, shifts, editingId, onEdit, onDelete }) {
     }
     totals[shift.employee_id].hours += hoursForShift(shift);
   }
-
-  // Turn the totals into a list, most hours first
   const summary = Object.values(totals).sort((a, b) => b.hours - a.hours);
 
   return (
@@ -36,23 +31,29 @@ function WeekView({ title, weekStart, shifts, editingId, onEdit, onDelete }) {
           <div key={day}>
             <h4>{formatDay(day)}</h4>
             {dayShifts.length === 0 ? (
-              <p>No shifts</p>
+              <p className="muted">No shifts</p>
             ) : (
               <ul>
                 {dayShifts.map((shift) => (
                   <li
                     key={shift.id}
-                    style={{ fontWeight: shift.id === editingId ? "bold" : "normal" }}
+                    className={shift.id === editingId ? "shift-row editing" : "shift-row"}
                   >
-                    {shift.employee.full_name} ({roleNames[shift.employee.role]}),{" "}
-                    {shift.start_time.slice(0, 5)}–{shift.end_time.slice(0, 5)},{" "}
-                    {hoursForShift(shift)} hours{" "}
-                    <button type="button" onClick={() => onEdit(shift)}>
-                      Edit
-                    </button>
-                    <button type="button" onClick={() => onDelete(shift)}>
-                      Delete
-                    </button>
+                    <span>
+                      <strong>{shift.employee.full_name}</strong>{" "}
+                      <span className="muted">({roleNames[shift.employee.role]})</span>
+                      <br />
+                      {formatTime(shift.start_time)} – {formatTime(shift.end_time)} ·{" "}
+                      {roundHours(hoursForShift(shift))} hrs
+                    </span>
+                    <span className="actions">
+                      <button type="button" className="secondary small" onClick={() => onEdit(shift)}>
+                        Edit
+                      </button>
+                      <button type="button" className="danger small" onClick={() => onDelete(shift)}>
+                        Delete
+                      </button>
+                    </span>
                   </li>
                 ))}
               </ul>
@@ -63,13 +64,13 @@ function WeekView({ title, weekStart, shifts, editingId, onEdit, onDelete }) {
 
       <h4>Hours this week</h4>
       {summary.length === 0 ? (
-        <p>No hours scheduled.</p>
+        <p className="muted">No hours scheduled.</p>
       ) : (
         <ul>
           {summary.map((person) => (
             <li key={person.id}>
-              {person.name}: {Number(person.hours.toFixed(2))} hours{" "}
-              {person.hours > 40 && <strong>⚠ Overtime</strong>}
+              {person.name}: {roundHours(person.hours)} hours{" "}
+              {person.hours > 40 && <strong className="warning">⚠ Overtime</strong>}
             </li>
           ))}
         </ul>

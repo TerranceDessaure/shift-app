@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "./supabaseClient";
+import { APP_NAME } from "./config";
 import Login from "./Login";
 import SignUp from "./SignUp";
 import Home from "./Home";
@@ -26,7 +27,7 @@ function App() {
   }, []);
 
   if (loading) {
-    return <p>Loading...</p>;
+    return <p className="container muted">Loading...</p>;
   }
 
   if (session) {
@@ -34,10 +35,10 @@ function App() {
   }
 
   return (
-    <div>
-      <h1>Shift App</h1>
-      {showSignUp ? <SignUp /> : <Login />}
-      <button onClick={() => setShowSignUp(!showSignUp)}>
+    <div className="container">
+      <h1>{APP_NAME}</h1>
+      <div className="card">{showSignUp ? <SignUp /> : <Login />}</div>
+      <button className="secondary" onClick={() => setShowSignUp(!showSignUp)}>
         {showSignUp
           ? "Already have an account? Log in"
           : "New here? Sign up with an invite code"}

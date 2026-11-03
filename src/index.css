@@ -204,3 +204,102 @@ li li {
     font-size: 1.75rem;
   }
 }
+
+/* ---------- Tabs ---------- */
+.tabs {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  margin-bottom: 1rem;
+  background: var(--color-border);
+  border-radius: var(--radius);
+}
+
+.tabs button.tab {
+  flex: 1;
+  min-height: 40px;
+  padding: 0.4rem 0.5rem;
+  background: transparent;
+  color: var(--color-muted);
+  font-size: 0.9rem;
+}
+
+.tabs button.tab:hover {
+  background: var(--color-card);
+}
+
+.tabs button.tab.active {
+  background: var(--color-card);
+  color: var(--color-text);
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* ---------- Schedule rows ---------- */
+.day-row {
+  display: grid;
+  grid-template-columns: 6.5rem 1fr;
+  gap: 0.5rem;
+  align-items: start;
+}
+
+.day-row.today,
+.shift-row.editing {
+  background: var(--color-message-bg);
+  border-radius: 8px;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+
+.day-label {
+  font-weight: 600;
+}
+
+.coworkers {
+  margin-top: 0.35rem;
+  font-size: 0.9rem;
+}
+
+.week-total {
+  font-weight: 600;
+  margin-top: 0.75rem;
+}
+
+.shift-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.actions {
+  display: flex;
+  gap: 0.25rem;
+}
+
+/* ---------- Form fields ---------- */
+.field {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.25rem;
+  font-size: 0.9rem;
+  color: var(--color-muted);
+}
+
+.field-row {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.button-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+@media (min-width: 640px) {
+  .field-row {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}

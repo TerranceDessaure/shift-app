@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "./supabaseClient";
 import { roleNames } from "./roles";
-import { toDateString, addDays, getMonday } from "./dates";
+import { toDateString, addDays, getMonday, formatDay } from "./dates";
 import WeekView from "./WeekView";
 
 
@@ -161,106 +161,128 @@ function ManagerSchedule({ profile }) {
   }
 
   // Copy this week's shifts into next week
-async function handleCopyWeek() {
-  const week2StartDate = toDateString(week2Start);
-  const thisWeekCount = shifts.filter((shift) => shift.shift_date < week2StartDate).length;
-  const nextWeekCount = shifts.length - thisWeekCount;
+  async function handleCopyWeek() {
+    const week2StartDate = toDateString(week2Start);
+    const thisWeekCount = shifts.filter((shift) => shift.shift_date < week2StartDate).length;
+    const nextWeekCount = shifts.length - thisWeekCount;
 
-  if (thisWeekCount === 0) {
-    setMessage("This week has no shifts to copy.");
-    return;
+    if (thisWeekCount === 0) {
+      setMessage("This week has no shifts to copy.");
+      return;
+    }
+
+    const question =
+      nextWeekCount > 0
+        ? `Next week already has ${nextWeekCount} shift(s). Copying will REPLACE them with this week's ${thisWeekCount} shift(s). Continue?`
+        : `Copy this week's ${thisWeekCount} shift(s) to next week?`;
+
+    if (!window.confirm(question)) {
+      return;
+    }
+
+    const { data, error } = await supabase.rpc("copy_week", {
+      p_from_monday: startDate,
+    });
+
+    if (error) {
+      setMessage(`Couldn't copy the week: ${error.message}`);
+      return;
+    }
+
+    resetForm();
+    setMessage(`Copied ${data} shift(s) to next week.`);
+    loadShifts();
   }
-
-  const question =
-    nextWeekCount > 0
-      ? `Next week already has ${nextWeekCount} shift(s). Copying will REPLACE them with this week's ${thisWeekCount} shift(s). Continue?`
-      : `Copy this week's ${thisWeekCount} shift(s) to next week?`;
-
-  if (!window.confirm(question)) {
-    return;
-  }
-
-  const { data, error } = await supabase.rpc("copy_week", {
-    p_from_monday: startDate,
-  });
-
-  if (error) {
-    setMessage(`Couldn't copy the week: ${error.message}`);
-    return;
-  }
-
-  resetForm();
-  setMessage(`Copied ${data} shift(s) to next week.`);
-  loadShifts();
-}
 
 
   return (
     <div>
-      <h2>Schedule: {startDate} to {endDate}</h2>
+      <h2>Team schedule</h2>
+      <p className="muted">
+        {formatDay(startDate)} – {formatDay(endDate)}
+      </p>
 
       <form onSubmit={handleSubmit}>
         <h3>{editingId ? "Edit shift" : "Add a shift"}</h3>
-        <select
-          value={employeeId}
-          onChange={(event) => setEmployeeId(event.target.value)}
-          required
-        >
-          <option value="">Choose an employee</option>
-          {employees.map((employee) => (
-            <option key={employee.id} value={employee.id}>
-              {employee.full_name} ({roleNames[employee.role]})
-            </option>
-          ))}
-        </select>
-        <input
-          type="date"
-          value={shiftDate}
-          onChange={(event) => setShiftDate(event.target.value)}
-          required
-        />
-        <input
-          type="time"
-          value={startTime}
-          onChange={(event) => setStartTime(event.target.value)}
-          required
-        />
-        <input
-          type="time"
-          value={endTime}
-          onChange={(event) => setEndTime(event.target.value)}
-          required
-        />
-        <button type="submit">{editingId ? "Save changes" : "Add shift"}</button>
-        {editingId && (
-          <button type="button" onClick={resetForm}>
-            Cancel
-          </button>
-        )}
+
+        <label className="field">
+          Employee
+          <select
+            value={employeeId}
+            onChange={(event) => setEmployeeId(event.target.value)}
+            required
+          >
+            <option value="">Choose an employee</option>
+            {employees.map((employee) => (
+              <option key={employee.id} value={employee.id}>
+                {employee.full_name} ({roleNames[employee.role]})
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <div className="field-row">
+          <label className="field">
+            Date
+            <input
+              type="date"
+              value={shiftDate}
+              onChange={(event) => setShiftDate(event.target.value)}
+              required
+            />
+          </label>
+          <label className="field">
+            Start
+            <input
+              type="time"
+              value={startTime}
+              onChange={(event) => setStartTime(event.target.value)}
+              required
+            />
+          </label>
+          <label className="field">
+            End
+            <input
+              type="time"
+              value={endTime}
+              onChange={(event) => setEndTime(event.target.value)}
+              required
+            />
+          </label>
+        </div>
+
+        <div className="button-row">
+          <button type="submit">{editingId ? "Save changes" : "Add shift"}</button>
+          {editingId && (
+            <button type="button" className="secondary" onClick={resetForm}>
+              Cancel
+            </button>
+          )}
+        </div>
       </form>
 
       {message && <p>{message}</p>}
 
       <button type="button" onClick={handleCopyWeek}>
-         Copy this week to next week
-       </button>
+        Copy this week to next week
+      </button>
 
-        <WeekView
-          title="This week"
-          weekStart={week1Start}
-          shifts={shifts}
-          editingId={editingId}
-          onEdit={startEdit}
-          onDelete={handleDelete}
-       />
-        <WeekView
-          title="Next week"
-          weekStart={week2Start}
-          shifts={shifts}
-          editingId={editingId}
-          onEdit={startEdit}
-          onDelete={handleDelete}
-        />
+      <WeekView
+        title="This week"
+        weekStart={week1Start}
+        shifts={shifts}
+        editingId={editingId}
+        onEdit={startEdit}
+        onDelete={handleDelete}
+      />
+      <WeekView
+        title="Next week"
+        weekStart={week2Start}
+        shifts={shifts}
+        editingId={editingId}
+        onEdit={startEdit}
+        onDelete={handleDelete}
+      />
     </div>
   );
 }

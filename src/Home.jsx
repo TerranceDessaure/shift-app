@@ -4,10 +4,12 @@ import { roleNames } from "./roles";
 import ManagerSchedule from "./ManagerSchedule";
 import InviteCodes from "./InviteCodes";
 import MySchedule from "./MySchedule";
+import { APP_NAME } from "./config";
 
 function Home({ session }) {
   const [profile, setProfile] = useState(null);
   const [message, setMessage] = useState("");
+  const [tab, setTab] = useState("mine");
 
   // Load this person's profile when the screen appears
   useEffect(() => {
@@ -35,7 +37,7 @@ function Home({ session }) {
 return (
   <>
     <header className="header">
-      <strong>Shift App</strong>
+      <strong>{APP_NAME}</strong>
       <button className="secondary small" onClick={handleLogout}>
         Log out
       </button>
@@ -52,14 +54,32 @@ return (
             @{profile.username} · {roleNames[profile.role]}
           </p>
 
-          <MySchedule profile={profile} />
-
           {profile.role === "manager" && (
-            <>
-              <ManagerSchedule profile={profile} />
-              <InviteCodes />
-            </>
+            <nav className="tabs">
+              <button
+                className={tab === "mine" ? "tab active" : "tab"}
+                onClick={() => setTab("mine")}
+              >
+                My schedule
+              </button>
+              <button
+                className={tab === "team" ? "tab active" : "tab"}
+                onClick={() => setTab("team")}
+              >
+                Team schedule
+              </button>
+              <button
+                className={tab === "invites" ? "tab active" : "tab"}
+                onClick={() => setTab("invites")}
+              >
+                Invite codes
+              </button>
+            </nav>
           )}
+
+          {tab === "mine" && <MySchedule profile={profile} />}
+          {tab === "team" && <ManagerSchedule profile={profile} />}
+          {tab === "invites" && <InviteCodes />}
         </>
       )}
     </main>
