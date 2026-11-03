@@ -32,21 +32,27 @@ function Home({ session }) {
     await supabase.auth.signOut();
   }
 
-  return (
-    <div>
-      <button onClick={handleLogout}>Log out</button>
+return (
+  <>
+    <header className="header">
+      <strong>Shift App</strong>
+      <button className="secondary small" onClick={handleLogout}>
+        Log out
+      </button>
+    </header>
 
-      {message && <p>{message}</p>}
-      {!profile && !message && <p>Loading your profile...</p>}
+    <main className="container">
+      {message && <p className="message">{message}</p>}
+      {!profile && !message && <p className="muted">Loading your profile...</p>}
 
       {profile && (
         <>
           <h1>Welcome, {profile.full_name}!</h1>
-          <p>
+          <p className="muted">
             @{profile.username} · {roleNames[profile.role]}
           </p>
-          
-         <MySchedule profile={profile} />
+
+          <MySchedule profile={profile} />
 
           {profile.role === "manager" && (
             <>
@@ -56,8 +62,9 @@ function Home({ session }) {
           )}
         </>
       )}
-    </div>
-  );
+    </main>
+  </>
+);
 }
 
 export default Home;
