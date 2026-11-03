@@ -296,3 +296,37 @@ $$;
 grant execute on function create_invite(text) to authenticated;
 
 
+-- ---------- COWORKERS ----------
+
+-- The coworkers on the days I'm working, between two dates.
+-- Returns only names, roles, and times; never phone numbers.
+create or replace function my_coworkers(p_start date, p_end date)
+returns table (
+  shift_id uuid,
+  shift_date date,
+  full_name text,
+  role text,
+  start_time time,
+  end_time time
+)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select s.id, s.shift_date, p.full_name, p.role, s.start_time, s.end_time
+  from shifts s
+  join profiles p on p.id = s.employee_id
+  where s.restaurant_id = my_restaurant_id()
+    and s.employee_id <> auth.uid()
+    and s.shift_date between p_start and p_end
+    and s.shift_date in (
+      select mine.shift_date
+      from shifts mine
+      where mine.employee_id = auth.uid()
+        and mine.shift_date between p_start and p_end
+    )
+  order by s.shift_date, s.start_time;
+$$;
+
+grant execute on function my_coworkers(date, date) to authenticated;
