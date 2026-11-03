@@ -497,3 +497,165 @@ role still gets rejected by the table's `check` rule.
 
 **Next:** Day 13 – the employee schedule: my shifts, hours with and without
 the break, and my weekly total.
+
+## Day 13 – Nov 3, 2026
+
+**Goal:** Give employees their schedule: their shifts, hours with and without
+the break, and weekly totals.
+
+**What I did:**
+- Added shared helpers:
+  - `dates.js`: `weekDays` (Monday–Saturday of a week) and `formatTime`
+    ("17:30:00" → "5:30 PM")
+  - `hours.js`: `hoursForShiftWithBreak` and `roundHours`
+- Refactored `WeekView.jsx` to use `weekDays` instead of building the list itself
+- Built `src/MySchedule.jsx`:
+  - This week and next, Monday–Saturday, with "Off" on days I'm not working
+  - "(today)" label, friendly times, hours per shift, and weekly totals
+  - A **Compare with a 30-minute break** checkbox that shows both numbers
+- Everyone gets My schedule (managers work shifts too); managers also get
+  their tools below it
+- No database changes: the Day 8 "Employees can read their own shifts"
+  policy already allowed this
+
+**Key ideas:**
+- **Refactoring:** changing code without changing what it does. `weekDays`
+  was needed in two places, so it became a shared function (DRY).
+- My Day 2 function `shiftHoursWithBreak` now powers a real feature!
+- `.eq("employee_id", profile.id)` is still needed even with RLS, because
+  managers can read every shift, and this screen should show only mine.
+
+**New JavaScript / React concepts:**
+- `%` (modulo) gives the remainder: `17 % 12` = 5, so 17:00 → 5 PM.
+  `12 % 12` = 0, so noon and midnight become 12.
+- Checkboxes use `checked` (not `value`), and `event.target.checked` is true/false
+- One true/false state (`showBreaks`) controls every "with break" number at once
+- A list of objects (`weeks`) lets one `.map()` draw both weeks
+
+**Problems & fixes:**
+- "Identifier `formatDay` has already been declared" → I added a new import
+  line instead of updating the existing one, so `formatDay` was imported twice.
+  Lesson: when updating an import, change the existing line from that file.
+
+---
+
+## Day 14 – Nov 3, 2026
+
+**Goal:** Show employees who they're working with, but only on days they work too.
+
+**What I did:**
+- Wrote a database function, `my_coworkers`, that returns coworkers' shifts on
+  the days I'm working: just the date, name, role, and times
+- Updated `MySchedule.jsx` to load coworkers and show "Working with:" under
+  each day I work, with each person's role and shift times
+- Tested with two employees: shared days show each other; days off show nothing
+
+**Why a function instead of a policy:**
+Policies control which ROWS someone can read, not which COLUMNS. A policy
+letting employees read coworkers' profiles would also expose phone numbers.
+The function returns exactly the six columns the screen needs and nothing else.
+This is the **principle of least privilege**: give out only what's needed.
+
+**New SQL concepts:**
+- `returns table (...)` – a function that returns rows with exactly these columns
+- `in (subquery)` – the subquery finds MY work dates, and `in` keeps only
+  coworker shifts on those dates (Python: `if date in my_dates`)
+- Using the same table twice with different aliases (`s` and `mine`)
+- `<>` means "not equal" (same as `!=`)
+- Testing it in the SQL Editor returns no rows, because the editor isn't
+  logged in as an app user, so `auth.uid()` is empty. The real test is in the app.
+
+**New React concepts:**
+- Two requests (my shifts + my coworkers), matched up by date with `.filter()`
+- A list inside a list: each day's `<li>` holds its own `<ul>` of coworkers
+
+**Problems & fixes:**
+- (fill in anything that went wrong)
+
+**Challenge:** mark coworkers whose hours overlap mine
+- (note whether I tried it)
+
+---
+
+## Day 15 – Nov 3, 2026
+
+**Goal:** Give the whole app a consistent look and make it comfortable on a phone.
+
+**What I did:**
+- Replaced `src/index.css` with my own stylesheet: colors, cards, buttons,
+  inputs, lists, and text helpers
+- Added classes across the app: a sticky header with Log out, cards around each
+  section, and button styles (`secondary`, `danger`, `small`)
+- Deleted the unused `App.css` and changed the browser tab title in `index.html`
+- Tested on phone sizes with the browser's device toolbar
+
+**CSS basics:**
+- A rule = which elements + how to style them
+- Selectors: by type (`button`), by class (`.card`), combined (`button.danger`)
+- JSX uses `className` because `class` is a reserved word in JavaScript
+- **Variables:** define `--color-primary` once, use `var(--color-primary)` everywhere
+- **padding** = space inside the border; **margin** = space outside it
+- **rem** = relative to the base text size (1rem ≈ 16px)
+- **`display: flex`** lines up children; `justify-content: space-between`
+  pushes them apart; `flex-direction: column` + `gap` stacks them evenly
+- **`position: sticky; top: 0`** keeps the header at the top while scrolling
+- **`max-width` + `margin: 0 auto`** keeps content readable and centered
+- **`box-sizing: border-box`** stops inputs from overflowing their box
+- `:hover`, `:focus`, and `:last-child` style elements in certain situations
+
+**Mobile-first:**
+- Most coworkers will use phones, so phone styles come first, and
+  `@media (min-width: 640px)` adds adjustments for bigger screens
+- Inputs use 16px text so iPhones don't zoom in
+- Buttons are at least 44px tall so they're easy to tap
+
+**Problems & fixes:**
+- (fill in anything that went wrong)
+
+---
+
+## Day 16 – Nov 3, 2026
+
+**Goal:** Polish the design: tabs for managers, cleaner schedule layouts,
+and labeled form fields.
+
+**What I did:**
+- Created `src/config.js` with `APP_NAME`, so renaming the app is one line
+  (plus the `<title>` in `index.html`)
+- Added manager tabs in `Home.jsx`: My schedule, Team schedule, Invite codes
+- Redesigned My schedule (employees and managers): dates on the left, details
+  on the right, today highlighted, "Off" in gray, neater coworker list
+- Redesigned the Team schedule (managers): friendly times, bold names,
+  Edit/Delete lined up on the right, a blue highlight while editing, and a
+  formatted date range
+- Added labels to the shift form, with date/start/end side by side on wide screens
+
+**Key ideas:**
+- **Hiding tabs is NOT security.** Employees can't use manager tools because
+  Row Level Security blocks them in the database. The screen is for
+  convenience; the database is for security.
+- One state value (`tab`) controls which screen shows, like `editingId`
+- **Labels** make tap targets bigger and let screen readers announce each field
+- Styles belong in the CSS file, not inline in JSX, so they're easy to find
+  (the `editing` class replaced the inline `fontWeight` style)
+
+**New CSS concepts:**
+- **`display: grid`** with `grid-template-columns: 6.5rem 1fr`: a fixed date
+  column, and the details take the rest (`1fr` = one share of leftover space)
+- `repeat(3, 1fr)` = three equal columns (only on wider screens)
+- `flex: 1` gives each tab an equal share of the width
+- `flex-wrap: wrap` lets buttons drop to the next line on narrow screens
+- `.tab.active` (no space) = an element with BOTH classes
+- A ternary can pick a class: `className={tab === "mine" ? "tab active" : "tab"}`
+
+**Problems & fixes:**
+- "showBreaks is not defined" in `App.jsx` → I pasted the new My schedule
+  layout into `App.jsx` instead of `MySchedule.jsx`. Fix: restored `App.jsx`
+  and pasted the code into the right file.
+  Lesson: check the editor tab's file name before pasting.
+- Tip: the **Source Control** panel shows what changed in each file since my
+  last commit, and right-click → **Discard Changes** restores a file.
+- Ctrl + Shift + M did nothing → the shortcut only works after clicking inside
+  the developer tools panel. Or click the phone-and-tablet icon in its top-left corner.
+
+**Next:** Day 17 – make the app installable to the home screen with its own icon.
