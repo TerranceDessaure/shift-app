@@ -4,11 +4,13 @@ import { APP_NAME } from "./config";
 import Login from "./Login";
 import SignUp from "./SignUp";
 import Home from "./Home";
+import TwoFactor from "./TwoFactor";
 
 function App() {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showSignUp, setShowSignUp] = useState(false);
+  const [mfaVerified, setMfaVerified] = useState(null);
 
   useEffect(() => {
     // 1. When the app opens, check whether someone is already logged in
@@ -26,14 +28,26 @@ function App() {
     return () => data.subscription.unsubscribe();
   }, []);
 
+  // Whenever the login changes, check whether it's verified with 2FA
+  useEffect(() => {
+    setMfaVerified(null);
+    if (!session) return;
+
+    supabase.auth.mfa.getAuthenticatorAssuranceLevel().then(({ data }) => {
+      setMfaVerified(data.currentLevel === "aal2");
+    });
+  }, [session]);
+
   if (loading) {
     return <p className="container muted">Loading...</p>;
   }
 
   if (session) {
-    return <Home session={session} />;
+    if (mfaVerified === null) {
+      return <p className="container muted">Loading...</p>;
+    }
+    return mfaVerified ? <Home session={session} /> : <TwoFactor />;
   }
-
   return (
     <div className="container">
       <h1>{APP_NAME}</h1>

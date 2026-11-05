@@ -330,3 +330,58 @@ as $$
 $$;
 
 grant execute on function my_coworkers(date, date) to authenticated;
+
+
+
+
+------------- Two-Factor ----------
+
+-- Every table also requires a login verfied with 2FA (aal2)
+-- "Restrictive" polices must pass IN ADDITION  to the normal ones
+drop policy if exists "Require 2FA" on profiles;
+create policy "Require 2FA" on profiles
+  as restrictive to authenticated
+  using ((select auth.jw() ->> 'aal') = 'aal2');
+
+
+drop policy if exists "Require 2FA" on shifts;
+create policy "Require 2FA" on shifts
+  as restrictive to authenticated
+  using ((select auth.jwt() ->> 'aal') = 'aal2');
+
+drop policy if exists "Require 2FA" on invite_codes;
+create policy "Require 2FA" on invite_codes
+  as restrictive to authenticated
+  using ((select auth.jwt() ->> 'aal') = 'aal2');
+
+-- my_coworkers uses security definer, which skips the policies above,
+-- so it needs its own 2FA check (the last "and" line is new)
+create or replace function my_coworkers(p_start date, p_end date)
+returns table (
+  shift_id uuid,
+  shift_date date,
+  full_name text,
+  role text,
+  start_time time,
+  end_time time
+)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select s.id, s.shift_date, p.full_name, p.role, s.start_time, s.end_time
+  from shifts s
+  join profiles p on p.id = s.employee_id
+  where s.restaurant_id = my_restaurant_id()
+    and s.employee_id <> auth.uid()
+    and s.shift_date between p_start and p_end
+    and s.shift_date in (
+      select mine.shift_date
+      from shifts mine
+      where mine.employee_id = auth.uid()
+        and mine.shift_date between p_start and p_end
+    )
+    and (select auth.jwt() ->> 'aal') = 'aal2'
+  order by s.shift_date, s.start_time;
+$$;
