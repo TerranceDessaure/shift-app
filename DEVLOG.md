@@ -659,3 +659,100 @@ and labeled form fields.
   the developer tools panel. Or click the phone-and-tablet icon in its top-left corner.
 
 **Next:** Day 17 – make the app installable to the home screen with its own icon.
+
+## Day 17 – Nov 3, 2026
+
+**Goal:** Make the app installable, so it gets its own icon on the home screen
+and opens full-screen like a real app.
+
+**What I did:**
+- Added three icons to the `public` folder: `icon-192.png`, `icon-512.png`,
+  and `apple-touch-icon.png` (a blue calendar with a check mark)
+- Created `public/manifest.webmanifest` with the app's name, icons, colors,
+  and `"display": "standalone"`
+- Linked the manifest, Apple icon, and theme color in `index.html`, and
+  replaced the tab icon
+- Checked it in F12 → Application → Manifest, then installed it on my computer
+  (it opened in its own window with no address bar) and uninstalled it
+
+**Key ideas:**
+- A **web app manifest** is what makes a website installable. It tells the
+  phone the app's name, icon, colors, and how to open.
+- Anything in `public` is served as-is at the root of the site
+  (`public/icon-192.png` → `localhost:5173/icon-192.png`)
+- `"display": "standalone"` removes the browser's address bar and buttons
+- `short_name` shows under the icon, so keep it 12 characters or fewer
+- **Maskable** icons survive Android cropping them into circles or squircles
+- iPhones ignore the manifest's icons and use `apple-touch-icon.png` (180×180)
+- Skipped the **service worker** (offline support): browsers no longer need
+  one to install, and a live schedule needs the internet anyway
+- Phones can't reach `localhost`, so installing on my phone waits until the
+  app is online with an `https` address (Day 19)
+- The app name now lives in 4 places: `config.js`, the `<title>` and
+  `apple-mobile-web-app-title` in `index.html`, and the manifest
+
+**JSON rules:**
+- Every key needs double quotes
+- No comments and no trailing commas (no comma after the last item)
+- One mistake and the whole file is ignored
+
+**Problems & fixes:**
+- Couldn't find `index.html` → I was looking at `src/index.css`. `index.html`
+  is in the main `shift-app` folder, outside `src`. Tip: **Ctrl + P** opens any
+  file by name.
+- "Manifest: Line 1, column 1, Syntax error" → the very first character was
+  wrong, which usually means the browser got the app's HTML page instead of
+  the manifest (file not found or misnamed), or the file started with leftover
+  text like ```json. Test: open `localhost:5173/manifest.webmanifest`
+  directly and see what comes back.
+- Downloading the icons: click each file card → download, then drag them from
+  Downloads into `shift-app/public`
+
+---
+
+## Making the repo public – Nov 3, 2026
+
+- Wrote a GitHub **About** section (description + topics like react, supabase,
+  postgresql, row-level-security)
+- Rewrote `README.md`: features, tech stack, how security works, setup steps,
+  project structure, and roadmap
+- Safety check before going public: `git log --all -- .env.local` returned
+  nothing, so my keys were never committed
+- The publishable Supabase key being public is fine, because Row Level Security
+  protects the data. The secret/service_role key must never be in the code.
+- Idea for later: add screenshots (with test names, not real coworkers)
+
+---
+
+## Day 18 – Nov 5, 2026
+
+**Goal:** Require two-factor login (2FA) with an authenticator app for everyone.
+
+**What I did:**
+- Added **restrictive** policies on `profiles`, `shifts`, and `invite_codes`
+  so the database refuses everything unless the login is verified with 2FA
+- Added a 2FA check inside `my_coworkers`
+- Built `src/TwoFactor.jsx`:
+  - First login: shows a QR code (and a key to type in manually), then
+    asks for the 6-digit code to finish setup
+  - Every login after: just asks for the code
+  - A Log out button in case someone gets stuck
+- Updated `App.jsx` to check the login level and show TwoFactor until it's verified
+- Tested setup, logging back in, a wrong code, refreshing, and a test employee
+
+**How 2FA works:**
+- **aal1** = password only; **aal2** = password + verified 6-digit code
+- The QR code holds a secret key. My authenticator app and the database both
+  know it, so the app makes a new code every 30 seconds and the database can
+  check it without sending any texts. That's why it's free.
+- The rule for the whole app: nothing works until you're at aal2
+
+**Why the database enforces it:**
+Hiding screens isn't security (Day 16 lesson). If only the app checked,
+someone with just a password could still talk to the database directly.
+
+**New SQL concepts:**
+- **Permissive vs. restrictive policies:** permissive policies combine with OR;
+  a restrictive policy combines with AND, so it adds "...and you've done 2FA"
+  on top of every existing rule without rewriting them
+- `auth.jwt() ->> 'aal'` reads the
