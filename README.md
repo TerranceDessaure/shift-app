@@ -96,8 +96,8 @@ shift-app/
 - [x] Coworkers on shared days
 - [x] Mobile-friendly design
 - [x] Installable to the home screen
-- [ ] Two-factor login
-- [ ] Deploy online with Vercel
+- [x] Two-factor login
+- [x] Deploy online with Vercel
 - [ ] Trial run with coworkers
 - [ ] Team chat: group chat and direct messages
 
